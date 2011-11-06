@@ -1,10 +1,4 @@
-// Copyright (c) 2011, the Dart project authors.  Please see the AUTHORS file
-// for details. All rights reserved. Use of this source code is governed by a
-// BSD-style license that can be found in the LICENSE file.
-
-
-// Dart test program for testing that heavy and light isolates can be mixed.
-
+// DartStar may be freely distributed under the MIT license. (c) 2011 azproduction
 
 #library('DartStarTest');
 
@@ -20,7 +14,7 @@ class DomTastCase extends TestCase {
   DomTastCase(): super(), sandbox = document.querySelector('#sandbox');
   
   tearDown() {
-    //sandbox.innerHTML = '';  
+    sandbox.innerHTML = '';  
   }
 }
 

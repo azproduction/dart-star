@@ -1,10 +1,11 @@
+// DartStar may be freely distributed under the MIT license. (c) 2011 azproduction
+
 #library('DartStar');
 
 #import('dart:dom');
 
 #source('DartStarInterface.dart');
 #source('DartStarCallbacks.dart');
-#source('console.dart');
 #resource('README.md');
 
 class DartStar implements DartStarInterface {

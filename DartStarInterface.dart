@@ -1,3 +1,5 @@
+// DartStar may be freely distributed under the MIT license. (c) 2011 azproduction
+
 interface DartStarInterface {
   HTMLCollection all;
 
