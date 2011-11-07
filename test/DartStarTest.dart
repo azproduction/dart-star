@@ -14,7 +14,20 @@ class DomTastCase extends TestCase {
   DomTastCase(): super(), sandbox = document.querySelector('#sandbox');
   
   tearDown() {
-    sandbox.innerHTML = '';  
+    //sandbox.innerHTML = '';  
+  }
+  
+  mapEquals (Map expected, Map actual, String message) {
+    expected.forEach((key, value) {
+      if (!actual.containsKey(key) || actual[key] != value) {
+        Expect.fail(message);
+      }
+    });
+    actual.forEach((key, value) {
+      if (!expected.containsKey(key) || expected[key] != value) {
+        Expect.fail(message);
+      }
+    });
   }
 }
 
@@ -44,6 +57,7 @@ class DartStarTest extends DomTastCase {
     addTest();
     eachTest();
     findTest();
+    cssTest();
   }
   
   constructorTest() {
@@ -133,16 +147,136 @@ class DartStarTest extends DomTastCase {
     // Should find all in all
     Expect.equals(6, ds2.length, 'Should find all in all: 6 <span> items in 3 <p>');
   }
+  
+  cssTest() {
+    DartStar ds = $('p'), _ds;
+    ds.style += {"display": "none", "width": "100%"}; // 'display: none; width: 100%' ; //
+    mapEquals(
+      DartStarCss.parseCssText("display: none; width: 100%; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should apply display and width as hash'
+      );
+    
+    ds.style += "height: 100%; left: 200px;";
+    mapEquals(
+      DartStarCss.parseCssText("display: none; width: 100%; left: 200px; height: 100%; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should apply height and left as string'
+      );
+         
+    ds.style -= "left;width";
+    mapEquals(
+      DartStarCss.parseCssText("display: none; height: 100%; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should remove left and width as string'
+      );
+    
+    ds.style -= {"height": null};
+    mapEquals(
+      DartStarCss.parseCssText("display: none; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should remove height as hash'
+      );
+    
+    ds.style += "height: 100px;";
+    mapEquals(
+      DartStarCss.parseCssText("display: none; height: 100px; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should add height as string'
+      );
+    
+    Expect.equals('100px', ds.style["height"], "Should get height directly");
+    
+    ds.style["height"] = null;
+    mapEquals(
+      DartStarCss.parseCssText("display: none; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should remove height as null'
+      );
+    
+    ds.style = {};
+    mapEquals(
+      {}, 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should reset as ={} assign'
+      );
+    
+    ds.style = {"display": "none", "width": "100%"}; 
+    mapEquals(
+      DartStarCss.parseCssText("display: none; width: 100%; "), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should reset to "display: none; width: 100%; " as {"display": "none", "width": "100%"} assign'
+      );
+    
+    ds.style = $('<div/>').css({"color": "red"});
+    mapEquals(
+      DartStarCss.parseCssText("color: red"), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should set value from Element/DartStar/ElementCollection/DartStarCss'
+      );
+    
+    ds.style += $('<div/>').css({"bottom": "10px"});
+    mapEquals(
+      DartStarCss.parseCssText("color: red; bottom: 10px"), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should drain value from Element/DartStar/ElementCollection/DartStarCss'
+      );
+    
+    ds.style -= $('<div/>').css({"bottom": "10px"});
+    mapEquals(
+      DartStarCss.parseCssText("color: red"), 
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      'Should remove value using Element/DartStar/ElementCollection/DartStarCss'
+      );
+    
+    ds.style = {"left": "100px", "top": "100px"};
+    _ds = $('<div/>').css({"left": "100px", "top": "100px"});
+    
+    mapEquals(
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      DartStarCss.parseCssText(_ds[0].style.cssText), 
+      'css() shoud apply values as += expect string argument'
+      );
+    
+    _ds = $('<div/>').css(ds.style);
+    
+    mapEquals(
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      DartStarCss.parseCssText(_ds[0].style.cssText), 
+      'css() shoud apply values as += expect string argument'
+      );
+    
+    _ds = $('<div/>').css(ds);
+    
+    mapEquals(
+      DartStarCss.parseCssText(ds[0].style.cssText), 
+      DartStarCss.parseCssText(_ds[0].style.cssText), 
+      'css() shoud apply values as += expect string argument'
+      );
+    
+    _ds = $('<div/>').css(ds);
+    
+    Expect.equals(
+      _ds.css("top"), 
+      ds.style["top"], 
+      'css() retrun values as style[]'
+      );
+    
+    _ds = $('<div/>').css(ds);
+    _ds.css("top", "111px");
+    ds.style["top"] = "111px";
+    
+    Expect.equals(
+      ds.style["top"], 
+      _ds.css("top"), 
+      'css() should set values as style[]='
+      );
+  }
+  
+  removeTest() {
+    // TODO(azproduction) write test
+  }
 }
-
-/*
-void main() {
-  $((){
-    $('pre').append('<pre id="ololo">Ololo</pre>');
-    console.log($('body>*'));
-    // .find('div').add('pre').add('<pre id="ololo">Ololo</pre>')
-  });
-}*/
 
 main() {
   runTests([new DartStarTest()]);

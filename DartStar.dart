@@ -6,13 +6,158 @@
 
 #source('DartStarInterface.dart');
 #source('DartStarCallbacks.dart');
-#resource('README.md');
+
+class DartStarCss {
+  DartStar _ds;
+  
+  DartStarCss(this._ds);
+  
+  static Map<String, String> parseCssText(String cssString) {
+    Map<String, String> _css = new Map<String, String>();
+    
+    List<String> cssParts = cssString.split(';');
+    
+    cssParts.forEach((String cssItem) {
+      List<String> _propValue = cssItem.split(':');
+      if (_propValue.length >= 1) {
+        // trim
+        _propValue[0] = _propValue[0].trim();
+        if (_propValue[0] != "") {
+          if (_propValue.length == 2) {
+            _css[_propValue[0]] = _propValue[1].trim();
+          } else if (_propValue.length == 1) {
+            _css[_propValue[0]] = null;
+          }
+        }
+      }
+    });
+    
+    return _css;
+  }
+  
+  Map<String, String> _makeCss(value) {
+    HTMLElement _element;
+    Map<String, String> _css = new Map<String, String>();
+    
+    // case $()
+    if (value is DartStar) {
+      if (value.length > 0) {
+        _element = value.all[0];
+        _css = DartStarCss.parseCssText(_element.style.cssText);
+      }
+      
+    // case $().css
+    } else if (value is DartStarCss) {
+      if (value._ds.length > 0) {
+        _element = value._ds.all[0];
+        _css = DartStarCss.parseCssText(_element.style.cssText);
+      }
+      
+    // case 'left: 10px; top: 20px;' or 'left;top;height'
+    } else if (value is String) {
+      _css = DartStarCss.parseCssText(value);
+      
+    // case {'left': '10px', 'top': '20px'}
+    } else if (value is Map<String, String>) {
+      _css = value; // as is
+      
+    // case ['left', 'width', 'top']
+    } else if (value is List<String>) {
+      value.forEach((String key) => _css[key] = null);
+    
+    // case HTMLCollection
+    } else if (value is HTMLCollection || value is NodeList) {
+      if (value.length > 0) {
+        _element = value[0];
+        _css = DartStarCss.parseCssText(_element.style.cssText);
+      }
+      
+    // case Element
+    } else if (value is HTMLElement) {
+      _css = DartStarCss.parseCssText(value.style.cssText);
+    }
+    
+    return _css;
+  }
+  
+  DartStarCss add(value) {
+    Map<String, Object> _css = _makeCss(value);
+    _ds.each((HTMLElement element) {
+      _css.forEach((String property, Object value) {
+        if (value == null || value == "" || value == false) {
+          element.style.removeProperty(property);
+        } else {
+          element.style.setProperty(property, value);
+        }
+      });
+    });
+    
+    return this;
+  }
+  
+  DartStarCss remove(value) {
+    Map<String, Object> _css = _makeCss(value);
+    
+    _ds.each((HTMLElement element) {
+      _css.forEach((String property, Object value) => element.style.removeProperty(property));
+    });
+    
+    return this;
+  }
+  
+  DartStarCss reset(value) {
+    if (value === this) {
+      return this;
+    }
+    Map<String, Object> _css = _makeCss(value);
+    
+    // remove All styles;
+    _ds.each((HTMLElement element) {
+      element.style.cssText = '';
+    });
+    
+    add(_css);
+    
+    return this;
+  }
+  
+  operator +(value) => add(value);
+  
+  operator -(value) => remove(value);
+  
+  operator [](String property) {
+    if (_ds.length > 0) {
+      HTMLElement _element = _ds.all[0];
+      return _element.style.getPropertyValue(property);
+    }
+    return null;
+  }
+  
+  operator []=(String property, String value) {
+    _ds.each((HTMLElement element) {
+      if (value == null || value == "" || value == false) {
+        element.style.removeProperty(property);
+      } else {
+        element.style.setProperty(property, value);
+      }
+    });
+  }
+}
 
 class DartStar implements DartStarInterface {
   
   /** Fields and Private fields */
   
   List<Node> all;
+  DartStarCss _style;
+  
+  DartStarCss get style() {
+    return _style;
+  }
+  
+  DartStarCss set style(value) {
+    _style.reset(value);
+  }
   
   /** Factory and Constructors */
   
@@ -30,8 +175,34 @@ class DartStar implements DartStarInterface {
   
   DartStar._create(query) {
     all = new List<Node>();
+    _style = new DartStarCss(this);
     add(query);
   }
+  
+  /** Operators */
+  
+  HTMLElement operator [](int index) {
+    int _realIndex;
+    
+    // 0 1 2 etc
+    if (index >= 0) {
+      _realIndex = index;
+    }
+    
+    // -1 -2 etc
+    if (index < 0) {
+      _realIndex = all.length + index;
+    }
+    
+    if (_realIndex >= 0 && all.length > _realIndex) {
+      return all[_realIndex];
+    }
+    
+    return null;
+  }
+  
+  operator +(value) => add(value);
+  operator -(value) => without(value);
   
   /** Static methods */
   
@@ -110,6 +281,19 @@ class DartStar implements DartStarInterface {
     return this;
   }
   
+  DartStar without([elements]) {
+    DartStar _remove = new DartStar(elements);
+    
+    _remove.each((HTMLElement element) {
+      int index = all.indexOf(element, 0);
+      if (index != -1) {
+        all.removeRange(index, 1);
+      }
+    });
+    
+    return this;
+  }
+  
   DartStar each([Function callback]) {
     if (callback == null) return this;
     
@@ -155,18 +339,31 @@ class DartStar implements DartStarInterface {
     return this;
   }
   
-  DartStar css(Map<String, String> css) {
-    each((HTMLElement element) {
-      css.forEach((String property, String value) => element.style.setProperty(property, value));
-    });
+  Object css(Object key_or_hash, [String value]) {
+    if (value == null) {
+      if (key_or_hash is String) {
+        return style[key_or_hash];
+      } else {
+        _style += key_or_hash;
+      }
+    } else {
+      _style[key_or_hash] = value;
+    }
     
     return this;
   }
   
   /** ## Helpers */
   
-  DartStar hide() => css({"display": "none"});
-  DartStar show() => css({"display": ""});
+  DartStar hide() {
+    _style["display"] = "none";
+    return this;
+  }
+  
+  DartStar show() {
+    _style["display"] = "";
+    return this;
+  }
   
   /** Pretty print */
   

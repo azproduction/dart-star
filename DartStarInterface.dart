@@ -2,10 +2,13 @@
 
 interface DartStarInterface {
   HTMLCollection all;
+  DartStarCss _style;
 
   /** Getters and Setters */
   
   int get length();
+  DartStarCss get style();
+  DartStarCss set style(value);
   
   /** Public methods */
   
@@ -30,10 +33,13 @@ interface DartStarInterface {
   /** # Element modification */
   
   Object attr(String key, [Object value]);
-  DartStarInterface css(Map<String, String> css);
   
   /** ## Helpers */
   
   DartStarInterface hide();
   DartStarInterface show();
+  
+  /*
+
+  */
 }
