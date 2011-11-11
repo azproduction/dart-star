@@ -17,7 +17,7 @@ class DomTastCase extends TestCase {
     //sandbox.innerHTML = '';  
   }
   
-  mapEquals (Map expected, Map actual, String message) {
+  mapEquals(Map expected, Map actual, String message) {
     expected.forEach((key, value) {
       if (!actual.containsKey(key) || actual[key] != value) {
         Expect.fail(message);
@@ -29,6 +29,9 @@ class DomTastCase extends TestCase {
       }
     });
   }
+  
+  cssEquals(String expected, String actual, String message) => 
+  mapEquals(DartStarCss.parseCssText(expected), DartStarCss.parseCssText(actual), message);
 }
 
 class DartStarTest extends DomTastCase {
@@ -58,6 +61,8 @@ class DartStarTest extends DomTastCase {
     eachTest();
     findTest();
     cssTest();
+    filetrTest();
+    removeTest();
   }
   
   constructorTest() {
@@ -119,6 +124,13 @@ class DartStarTest extends DomTastCase {
     Expect.equals(0, $().add([]).length, 'Should ignore trash items');
     Expect.equals(0, $().add({}).length, 'Should ignore trash items');
     Expect.equals(0, $().add(new RegExp('/.*/')).length, 'Should ignore trash items');
+    
+    // 8. Should be unique
+    ds = $('.p1');
+    ds.add('.p1');
+    Expect.equals(1, ds.length, 'Should be unique');
+    
+    
   }
   
   eachTest() {
@@ -150,122 +162,117 @@ class DartStarTest extends DomTastCase {
   
   cssTest() {
     DartStar ds = $('p'), _ds;
-    ds.style += {"display": "none", "width": "100%"}; // 'display: none; width: 100%' ; //
-    mapEquals(
-      DartStarCss.parseCssText("display: none; width: 100%; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    
+    ds.style += {"display": "none", "width": "100%"};
+    cssEquals(
+      "display: none; width: 100%; ", 
+      ds[0].style.cssText, 
       'Should apply display and width as hash'
       );
     
     ds.style += "height: 100%; left: 200px;";
-    mapEquals(
-      DartStarCss.parseCssText("display: none; width: 100%; left: 200px; height: 100%; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "display: none; width: 100%; left: 200px; height: 100%; ", 
+      ds[0].style.cssText, 
       'Should apply height and left as string'
       );
          
     ds.style -= "left;width";
-    mapEquals(
-      DartStarCss.parseCssText("display: none; height: 100%; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "display: none; height: 100%; ", 
+      ds[0].style.cssText, 
       'Should remove left and width as string'
       );
     
     ds.style -= {"height": null};
-    mapEquals(
-      DartStarCss.parseCssText("display: none; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "display: none; ", 
+      ds[0].style.cssText, 
       'Should remove height as hash'
       );
     
     ds.style += "height: 100px;";
-    mapEquals(
-      DartStarCss.parseCssText("display: none; height: 100px; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "display: none; height: 100px; ", 
+      ds[0].style.cssText, 
       'Should add height as string'
       );
     
     Expect.equals('100px', ds.style["height"], "Should get height directly");
     
     ds.style["height"] = null;
-    mapEquals(
-      DartStarCss.parseCssText("display: none; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "display: none; ", 
+      ds[0].style.cssText, 
       'Should remove height as null'
       );
     
     ds.style = {};
-    mapEquals(
-      {}, 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      '', 
+      ds[0].style.cssText, 
       'Should reset as ={} assign'
       );
     
     ds.style = {"display": "none", "width": "100%"}; 
-    mapEquals(
-      DartStarCss.parseCssText("display: none; width: 100%; "), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "display: none; width: 100%; ", 
+      ds[0].style.cssText, 
       'Should reset to "display: none; width: 100%; " as {"display": "none", "width": "100%"} assign'
       );
     
     ds.style = $('<div/>').css({"color": "red"});
-    mapEquals(
-      DartStarCss.parseCssText("color: red"), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "color: red", 
+      ds[0].style.cssText, 
       'Should set value from Element/DartStar/ElementCollection/DartStarCss'
       );
     
     ds.style += $('<div/>').css({"bottom": "10px"});
-    mapEquals(
-      DartStarCss.parseCssText("color: red; bottom: 10px"), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "color: red; bottom: 10px", 
+      ds[0].style.cssText, 
       'Should drain value from Element/DartStar/ElementCollection/DartStarCss'
       );
     
     ds.style -= $('<div/>').css({"bottom": "10px"});
-    mapEquals(
-      DartStarCss.parseCssText("color: red"), 
-      DartStarCss.parseCssText(ds[0].style.cssText), 
+    cssEquals(
+      "color: red", 
+      ds[0].style.cssText, 
       'Should remove value using Element/DartStar/ElementCollection/DartStarCss'
       );
     
     ds.style = {"left": "100px", "top": "100px"};
     _ds = $('<div/>').css({"left": "100px", "top": "100px"});
-    
-    mapEquals(
-      DartStarCss.parseCssText(ds[0].style.cssText), 
-      DartStarCss.parseCssText(_ds[0].style.cssText), 
+    cssEquals(
+      ds[0].style.cssText, 
+      _ds[0].style.cssText, 
       'css() shoud apply values as += expect string argument'
       );
     
     _ds = $('<div/>').css(ds.style);
-    
-    mapEquals(
-      DartStarCss.parseCssText(ds[0].style.cssText), 
-      DartStarCss.parseCssText(_ds[0].style.cssText), 
+    cssEquals(
+      ds[0].style.cssText, 
+      _ds[0].style.cssText, 
       'css() shoud apply values as += expect string argument'
       );
     
     _ds = $('<div/>').css(ds);
-    
-    mapEquals(
-      DartStarCss.parseCssText(ds[0].style.cssText), 
-      DartStarCss.parseCssText(_ds[0].style.cssText), 
-      'css() shoud apply values as += expect string argument'
-      );
+    cssEquals(
+      ds[0].style.cssText, 
+      _ds[0].style.cssText, 
+      'css() shoud apply values as += expect string argument');
     
     _ds = $('<div/>').css(ds);
-    
     Expect.equals(
       _ds.css("top"), 
       ds.style["top"], 
-      'css() retrun values as style[]'
+      'css() retruns values as style[]'
       );
     
     _ds = $('<div/>').css(ds);
     _ds.css("top", "111px");
     ds.style["top"] = "111px";
-    
     Expect.equals(
       ds.style["top"], 
       _ds.css("top"), 
@@ -273,8 +280,30 @@ class DartStarTest extends DomTastCase {
       );
   }
   
-  removeTest() {
+  filetrTest() {
     // TODO(azproduction) write test
+    DartStar ds;
+    
+    ds = $('p').add('<a class="p1"></a>').filter('.p1'); // 3
+    Expect.equals(2, ds.length, "Should be 2 items after filter '.p1'");
+  }
+  
+  removeTest() {
+    DartStar ds;
+    
+    ds = $('p'); // 3
+    ds += '<p class="p1"></p>'; // 4
+    ds -= '.p1'; // 2; eq ds.without('.p1');
+    Expect.equals(2, ds.length, "Should remove 2 elements using without '.p1'");
+    
+    ds = $('p'); // 3
+    ds += '<p class="p1"></p>'; // 4
+    ds -= '<p class="p1"></p>'; // 4
+    Expect.equals(4, ds.length, "Nothing");
+    
+    ds = $('p'); // 3
+    ds -= $('p'); // 0
+    Expect.equals(0, ds.length, "Should be Zero items");
   }
 }
 

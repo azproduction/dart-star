@@ -3,7 +3,13 @@
 interface DartStarInterface {
   HTMLCollection all;
   DartStarCss _style;
-
+  
+  /** Operators */
+  
+  HTMLElement operator [](int index);
+  operator +(value);
+  operator -(value);
+  
   /** Getters and Setters */
   
   int get length();
@@ -15,7 +21,9 @@ interface DartStarInterface {
   /** # Util methods */
   
   DartStarInterface add([elements]);
+  DartStarInterface filter(String selector);
   DartStarInterface each([Function callback]);
+  DartStarInterface without([elements]);
   
   /** # Filters */ 
   

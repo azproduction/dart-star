@@ -6,142 +6,74 @@
 
 #source('DartStarInterface.dart');
 #source('DartStarCallbacks.dart');
+#source('DartStarCss.dart');
 
-class DartStarCss {
-  DartStar _ds;
+class DartStarEventCollection {
+  Map<String, List<Function>> events;
   
-  DartStarCss(this._ds);
+  DartStarEventCollection ([items]) {
+    events = new Map<String, List>();
+    add(items);
+  }
   
-  static Map<String, String> parseCssText(String cssString) {
-    Map<String, String> _css = new Map<String, String>();
-    
-    List<String> cssParts = cssString.split(';');
-    
-    cssParts.forEach((String cssItem) {
-      List<String> _propValue = cssItem.split(':');
-      if (_propValue.length >= 1) {
-        // trim
-        _propValue[0] = _propValue[0].trim();
-        if (_propValue[0] != "") {
-          if (_propValue.length == 2) {
-            _css[_propValue[0]] = _propValue[1].trim();
-          } else if (_propValue.length == 1) {
-            _css[_propValue[0]] = null;
-          }
+  Map<String, List<Function>> _cast(items) {    
+    if (items is DartStarEventCollection) {
+      return items.events;
+    } else if (items is Map) {
+      Map<String, List<Function>> result = new Map<String, List>();
+      
+      items.forEach((String eventName, handlers){
+        List<Function> _handlers;
+        if (handlers is List) {
+          _handlers = handlers;  
+        } else if (handlers is Function) {
+          _handlers = new List<Function>();
+          _handlers.add(handlers); 
         }
-      }
-    });
-    
-    return _css;
-  }
-  
-  Map<String, String> _makeCss(value) {
-    HTMLElement _element;
-    Map<String, String> _css = new Map<String, String>();
-    
-    // case $()
-    if (value is DartStar) {
-      if (value.length > 0) {
-        _element = value.all[0];
-        _css = DartStarCss.parseCssText(_element.style.cssText);
-      }
-      
-    // case $().css
-    } else if (value is DartStarCss) {
-      if (value._ds.length > 0) {
-        _element = value._ds.all[0];
-        _css = DartStarCss.parseCssText(_element.style.cssText);
-      }
-      
-    // case 'left: 10px; top: 20px;' or 'left;top;height'
-    } else if (value is String) {
-      _css = DartStarCss.parseCssText(value);
-      
-    // case {'left': '10px', 'top': '20px'}
-    } else if (value is Map<String, String>) {
-      _css = value; // as is
-      
-    // case ['left', 'width', 'top']
-    } else if (value is List<String>) {
-      value.forEach((String key) => _css[key] = null);
-    
-    // case HTMLCollection
-    } else if (value is HTMLCollection || value is NodeList) {
-      if (value.length > 0) {
-        _element = value[0];
-        _css = DartStarCss.parseCssText(_element.style.cssText);
-      }
-      
-    // case Element
-    } else if (value is HTMLElement) {
-      _css = DartStarCss.parseCssText(value.style.cssText);
-    }
-    
-    return _css;
-  }
-  
-  DartStarCss add(value) {
-    Map<String, Object> _css = _makeCss(value);
-    _ds.each((HTMLElement element) {
-      _css.forEach((String property, Object value) {
-        if (value == null || value == "" || value == false) {
-          element.style.removeProperty(property);
+        
+        if (!result.containsKey(eventName)) {
+          result[eventName] = _handlers;
         } else {
-          element.style.setProperty(property, value);
+          result[eventName].addAll(_handlers);
         }
       });
-    });
-    
-    return this;
-  }
-  
-  DartStarCss remove(value) {
-    Map<String, Object> _css = _makeCss(value);
-    
-    _ds.each((HTMLElement element) {
-      _css.forEach((String property, Object value) => element.style.removeProperty(property));
-    });
-    
-    return this;
-  }
-  
-  DartStarCss reset(value) {
-    if (value === this) {
-      return this;
+      
+      return result;
+    } else {
+      throw new TypeError('Map<String, List<Function>>', items);
     }
-    Map<String, Object> _css = _makeCss(value);
-    
-    // remove All styles;
-    _ds.each((HTMLElement element) {
-      element.style.cssText = '';
-    });
-    
-    add(_css);
-    
-    return this;
   }
   
-  operator +(value) => add(value);
-  
-  operator -(value) => remove(value);
-  
-  operator [](String property) {
-    if (_ds.length > 0) {
-      HTMLElement _element = _ds.all[0];
-      return _element.style.getPropertyValue(property);
-    }
-    return null;
-  }
-  
-  operator []=(String property, String value) {
-    _ds.each((HTMLElement element) {
-      if (value == null || value == "" || value == false) {
-        element.style.removeProperty(property);
+  DartStarEventCollection add([items]) {
+    _cast(items).forEach((String eventName, List handlers){
+      if (!events.containsKey(eventName)) {
+        events[eventName] = handlers;
       } else {
-        element.style.setProperty(property, value);
+        events[eventName].addAll(handlers);
       }
     });
+    
+    return this;
   }
+  
+  DartStarEventCollection remove ([items, Function callback(String eventName, Function callback)]) {
+    _cast(items).forEach((String eventName, List handlers){
+      if (events.containsKey(eventName)) {
+        handlers.forEach((Function handler){
+          int index = events[eventName].indexOf(handler);
+          if (index != -1) {
+            if (callback is Function) callback(eventName, events[eventName][index]);
+            events[eventName].removeRange(index, 1);
+          }
+        });
+      }
+    });
+    
+    return this;
+  }
+  
+  operator +([items]) => add(items);
+  operator -([items]) => remove(items);
 }
 
 class DartStar implements DartStarInterface {
@@ -221,11 +153,16 @@ class DartStar implements DartStarInterface {
   
   /** Private methods */
   
-  DartStar _insertAllTo(String where, target) {
+  DartStar _insertAllTo(String where, target, [bool isDoClone = false]) {
     DartStar _ds = new DartStar(target);
     if (_ds.all.length > 0) {
       HTMLElement _dest = _ds.all[0];
-      each((HTMLElement element) => _dest.insertAdjacentElement(where, element));
+      each((HTMLElement element) {
+        if (isDoClone) {
+          element = element.cloneNode(false);
+        }
+        _dest.insertAdjacentElement(where, element);
+      });
     }
     
     return this;
@@ -241,6 +178,14 @@ class DartStar implements DartStarInterface {
     return this;
   }
   
+  _addAllUnique(Collection<Node> items) {
+    items.forEach((HTMLElement element) {
+      if (all.indexOf(element, 0) == -1) {
+        all.add(element);
+      }  
+    });  
+  }
+  
   /** Getters and Setters */
   
   int get length() => all.length;
@@ -254,35 +199,57 @@ class DartStar implements DartStarInterface {
     
     // case $.add($('<div>'))
     if (elements is DartStar) {
-      all.addAll(elements.all);
+      _addAllUnique(elements.all);
       
     // case $.add(List<Eement>);
-    } else if (elements is HTMLCollection || elements is NodeList) {
-      all.addAll(elements);
+    } else if (elements is HTMLCollection || elements is NodeList || elements is List) {
+      _addAllUnique(elements);
       
     // case $.add(Element)
     } else if (elements is HTMLElement) {
-      all.add(elements);
+      List<Node> _elements = new List<Node>();
+      _elements.add(elements);
+      _addAllUnique(_elements);
       
     } else if (elements is String) {
       // case $.add('<div>')
       if (elements.startsWith('<')) {
         HTMLElement _wrapper = document.createElement('div');
         _wrapper.innerHTML = elements;
-        all.addAll(_wrapper.children);
+        _addAllUnique(_wrapper.children);
         
       // case $.add('.selector')
       } else { // Selector
-        
-        all.addAll(window.document.querySelectorAll(elements));
+        _addAllUnique(window.document.querySelectorAll(elements));
       }
     }
     
     return this;
   }
   
+  DartStar filter(String selector) {
+    List<Node> result = new List<Node>();
+    HTMLElement _wrapper = document.createElement('div');
+    
+    each((HTMLElement element) {
+      HTMLElement _element = element.cloneNode(false);
+      _wrapper.innerHTML = '';
+      _wrapper.insertAdjacentElement('beforeEnd', _element);
+      if (_wrapper.querySelector(selector) === _element) {
+        result.add(element);
+      }
+    });
+    
+    return new DartStar(result);
+  }
+  
   DartStar without([elements]) {
-    DartStar _remove = new DartStar(elements);
+    DartStar _remove;
+    if (elements is String && !elements.startsWith('<')) {
+      _remove = filter(elements);
+    } else {
+      _remove = new DartStar(elements);
+    }
     
     _remove.each((HTMLElement element) {
       int index = all.indexOf(element, 0);
@@ -375,6 +342,44 @@ class DartStar implements DartStarInterface {
     });
     return '${all.length} elements: ' + wrapper.innerHTML;
   }
+  
+  /** Events */
+  DartStarEventCollection bind(events, [data_or_handler, handler]) {
+    var data;
+    if (handler is! Function) {
+      if (events is! Map<String, Function>) {
+        handler = data_or_handler;
+        data = null;
+      } else {
+        handler = null;
+        if (data_or_handler is! Function) {
+          data = data_or_handler;
+        }
+      }
+    } else {
+       data = data_or_handler;
+    }
+    
+    Map<String, Function> _events = new Map<String, Function>();
+    
+    if (events is Map<String, Function>) {
+      _events = events;
+    } else {
+      events.split(' ').forEach(function(String eventName){
+        eventName = eventName.trim();
+        if (eventName.length != 0) {
+          _events[eventName] = handler;
+        }
+      });
+    }
+    
+    _events.forEach((String eventName, Function handler) {
+      
+    });
+    
+    return new DartStarEventCollection(_events);
+  }
+  
 }
 
 DartStar $([query]) {
