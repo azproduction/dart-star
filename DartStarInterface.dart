@@ -2,7 +2,6 @@
 
 interface DartStarInterface {
   HTMLCollection all;
-  DartStarCss _style;
   
   /** Operators */
   
@@ -13,8 +12,6 @@ interface DartStarInterface {
   /** Getters and Setters */
   
   int get length();
-  DartStarCss get style();
-  DartStarCss set style(value);
   
   /** Public methods */
   

@@ -1,4 +1,6 @@
-class DartStarCss {
+class DartStarCss implements
+DartStarCssInterface {
+  
   DartStar _ds;
   
   DartStarCss(this._ds);

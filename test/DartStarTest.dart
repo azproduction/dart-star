@@ -281,7 +281,6 @@ class DartStarTest extends DomTastCase {
   }
   
   filetrTest() {
-    // TODO(azproduction) write test
     DartStar ds;
     
     ds = $('p').add('<a class="p1"></a>').filter('.p1'); // 3
@@ -289,6 +288,7 @@ class DartStarTest extends DomTastCase {
   }
   
   removeTest() {
+    // TODO(azproduction) write test
     DartStar ds;
     
     ds = $('p'); // 3
@@ -304,6 +304,62 @@ class DartStarTest extends DomTastCase {
     ds = $('p'); // 3
     ds -= $('p'); // 0
     Expect.equals(0, ds.length, "Should be Zero items");
+  }
+  
+  eventTest() {
+    DartStar ds;
+    
+    // returns event object
+    DartStarEvent click = $('p').on('click', (Event event){});
+    
+    // stack few events in one event collection
+    DartStarEvent collection = $('p')
+    .on('click', (){})
+    .on('mouseover mouseout', (){})
+    .on(['keydown'], (){})
+    .on({
+      'focus': (){},
+      'blur': (){}
+    });
+    
+    collection.off('click'); // unbind click
+    collection.off('mouseover mouseout'); // unbind mouseover mouseout
+    collection.off(['focus']); // unbind focus
+    collection.off({'focus': null, 'blur': null}); // unbind focus and blur
+    collection.off(); // unbind the rest
+    collection.pause(); // pause/suspend all (not unbind)
+    collection.on(); // resume all same as collection.resume();
+    
+    // event object with .p1 events
+    DartStarEvent p1_click = $('.p1')
+    .on('click', (){});
+    
+    // event object with .p2 events
+    DartStarEvent p2_click = $('.p2')
+    .on('click', (){});
+    
+    // Stack object .p1 + .p2 events there with DS of 2 object (in memory DS)
+    DartStarEvent p2_p1_click = p1_click + p2_click;
+   
+    // event object with .p3 events
+    DartStarEvent p3_p2_p1_click = $('.p3')
+    .on('click', (){});
+    
+    // Stack object .p1 + .p2 + .p3 events with DS of 3 objects (in memory DS)
+    p3_p2_p1_click += p2_p1_click;
+    
+    // unbinds all clicks
+    p3_p2_p1_click.off();
+    
+    DartStarEvent p1_events = $('.p1,.p2').on('click', () {});
+    
+    Function tmp = () {};
+    Function tmp2 = () {};
+    p1_events['click'] += [tmp, tmp2]; // same as .on('click', tmp).on('click', tmp2);
+    p1_events['click'] -= tmp; // same as .off('click', tmp);
+    p1_events['click'] = tmp; // same as .off().on('click', tmp);
+    
+    
   }
 }
 

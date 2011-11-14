@@ -7,89 +7,28 @@
 #source('DartStarInterface.dart');
 #source('DartStarCallbacks.dart');
 #source('DartStarCss.dart');
+#source('DartStarCssHostInterface.dart');
+#source('DartStarEvent.dart');
+#source('DartStarEventInterface.dart');
+#source('DartStarEventHostInterface.dart');
+#source('DartStarCssInterface.dart');
 
-class DartStarEventCollection {
-  Map<String, List<Function>> events;
-  
-  DartStarEventCollection ([items]) {
-    events = new Map<String, List>();
-    add(items);
-  }
-  
-  Map<String, List<Function>> _cast(items) {    
-    if (items is DartStarEventCollection) {
-      return items.events;
-    } else if (items is Map) {
-      Map<String, List<Function>> result = new Map<String, List>();
-      
-      items.forEach((String eventName, handlers){
-        List<Function> _handlers;
-        if (handlers is List) {
-          _handlers = handlers;  
-        } else if (handlers is Function) {
-          _handlers = new List<Function>();
-          _handlers.add(handlers); 
-        }
-        
-        if (!result.containsKey(eventName)) {
-          result[eventName] = _handlers;
-        } else {
-          result[eventName].addAll(_handlers);
-        }
-      });
-      
-      return result;
-    } else {
-      throw new TypeError('Map<String, List<Function>>', items);
-    }
-  }
-  
-  DartStarEventCollection add([items]) {
-    _cast(items).forEach((String eventName, List handlers){
-      if (!events.containsKey(eventName)) {
-        events[eventName] = handlers;
-      } else {
-        events[eventName].addAll(handlers);
-      }
-    });
-    
-    return this;
-  }
-  
-  DartStarEventCollection remove ([items, Function callback(String eventName, Function callback)]) {
-    _cast(items).forEach((String eventName, List handlers){
-      if (events.containsKey(eventName)) {
-        handlers.forEach((Function handler){
-          int index = events[eventName].indexOf(handler);
-          if (index != -1) {
-            if (callback is Function) callback(eventName, events[eventName][index]);
-            events[eventName].removeRange(index, 1);
-          }
-        });
-      }
-    });
-    
-    return this;
-  }
-  
-  operator +([items]) => add(items);
-  operator -([items]) => remove(items);
-}
-
-class DartStar implements DartStarInterface {
+class DartStar implements 
+DartStarInterface, 
+DartStarCssHostInterface,
+DartStarEventHostInterface {
   
   /** Fields and Private fields */
   
   List<Node> all;
+  
   DartStarCss _style;
+  DartStarCss get style() => _style;
+  DartStarCss set style(value) => _style.reset(value);
   
-  DartStarCss get style() {
-    return _style;
-  }
-  
-  DartStarCss set style(value) {
-    _style.reset(value);
-  }
+  DartStarEvent _event;
+  DartStarEvent get event() => _event;
+  DartStarEvent set event(value) => _event.reset(value);
   
   /** Factory and Constructors */
   
@@ -108,6 +47,7 @@ class DartStar implements DartStarInterface {
   DartStar._create(query) {
     all = new List<Node>();
     _style = new DartStarCss(this);
+    _event = new DartStarEvent(this);
     add(query);
   }
   
@@ -344,41 +284,12 @@ class DartStar implements DartStarInterface {
   }
   
   /** Events */
-  DartStarEventCollection bind(events, [data_or_handler, handler]) {
-    var data;
-    if (handler is! Function) {
-      if (events is! Map<String, Function>) {
-        handler = data_or_handler;
-        data = null;
-      } else {
-        handler = null;
-        if (data_or_handler is! Function) {
-          data = data_or_handler;
-        }
-      }
-    } else {
-       data = data_or_handler;
-    }
-    
-    Map<String, Function> _events = new Map<String, Function>();
-    
-    if (events is Map<String, Function>) {
-      _events = events;
-    } else {
-      events.split(' ').forEach(function(String eventName){
-        eventName = eventName.trim();
-        if (eventName.length != 0) {
-          _events[eventName] = handler;
-        }
-      });
-    }
-    
-    _events.forEach((String eventName, Function handler) {
-      
-    });
-    
-    return new DartStarEventCollection(_events);
-  }
+  
+  DartStarEvent on([events, handlers]) => _event.on(events, handlers);
+  DartStarEvent off([events, handlers]) => _event.off(events, handlers);
+  DartStarEvent pause([events, handlers]) => _event.pause(events, handlers);
+  DartStarEvent resume([events, handlers]) => _event.resume(events, handlers);
+  DartStarEvent fire(String events, Object data) => _event.fire(events, data);
   
 }
 
